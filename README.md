@@ -27,7 +27,7 @@ graph TD
     H -->|Linear baseline| K["05. Logistic Regression"]
     H -->|Ensemble decision trees| L["06. Random Forest"]
     I & J & K & L --> M["07. Model Comparison & Charts"]
-    M -->|Tuned KNN (K=9) Selected| N["Champion Model Export"]
+    M -->|Tuned KNN K=9 Selected| N["Champion Model Export"]
     N -->|joblib.dump| O["models/knn_best.pkl & models/scaler.pkl"]
 ```
 
