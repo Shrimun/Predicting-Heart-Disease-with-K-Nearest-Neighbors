@@ -15,7 +15,7 @@ Below is the workflow diagram showing how raw patient data is processed, trained
 
 ```mermaid
 graph TD
-    A["Raw Cleveland Data (heart.csv)"] --> B["01. Exploratory Data Analysis (EDA)"]
+    A["Raw Data (heart.csv)"] --> B["01. Exploratory Data Analysis (EDA)"]
     B --> C["02. Preprocessing & Pre-Cleaning"]
     C -->|Replace '?' with NaN | D["Median Imputation"]
     D -->|Map classes 1-4 to 1| E["Target Binarization"]
