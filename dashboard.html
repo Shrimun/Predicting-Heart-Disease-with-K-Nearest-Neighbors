@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heart Disease Prediction Dashboard</title>
+    <!-- Premium Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Import Dataset & KNN Parameters -->
+    <script src="dashboard_data.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --sidebar-color: #111827;
+            --card-color: rgba(17, 24, 39, 0.6);
+            --card-border: rgba(255, 255, 255, 0.06);
+            --primary-color: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --success-color: #10b981;
+            --danger-color: #f43f5e;
+            --warning-color: #fbbf24;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, .brand-title {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background-color: var(--sidebar-color);
+            border-right: 1px solid var(--card-border);
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            z-index: 10;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 40px;
+        }
+
+        .brand-icon {
+            font-size: 28px;
+            color: var(--danger-color);
+            animation: pulse 2s infinite;
+        }
+
+        .brand-title {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--text-main), var(--primary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: var(--text-main);
+            background-color: rgba(56, 189, 248, 0.1);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .nav-icon {
+            font-size: 18px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--card-border);
+            padding-top: 16px;
+            text-align: center;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 40px;
+            min-height: 100vh;
+            width: calc(100% - 280px);
+        }
+
+        /* --- HEADER & TITLES --- */
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: var(--text-muted);
+            font-size: 16px;
+        }
+
+        /* --- TABS --- */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* --- CARDS & GRID --- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .kpi-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--primary-color);
+        }
+
+        .kpi-card.healthy::before { background-color: var(--success-color); }
+        .kpi-card.disease::before { background-color: var(--danger-color); }
+        .kpi-card.metrics::before { background-color: var(--warning-color); }
+
+        .kpi-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .dashboard-grid-full {
+            grid-template-columns: 1fr;
+        }
+
+        .chart-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chart-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        /* --- PREDICTOR INTERFACE --- */
+        .predictor-container {
+            display: grid;
+            grid-template-columns: 2fr 1.2fr;
+            gap: 32px;
+        }
+
+        .inputs-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 32px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group-full {
+            grid-column: span 2;
+        }
+
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        label span.val-display {
+            color: var(--primary-color);
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            margin-top: 4px;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            cursor: pointer;
+            transition: all 0.1s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: var(--primary-hover);
+        }
+
+        select {
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            outline: none;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-predict {
+            grid-column: span 2;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            color: var(--sidebar-color);
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+            margin-top: 12px;
+        }
+
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+        }
+
+        /* --- RESULTS CARD --- */
+        .results-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .result-card {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .gauge-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+
+        .gauge-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 14;
+        }
+
+        .gauge-fill {
+            fill: none;
+            stroke: var(--success-color);
+            stroke-width: 14;
+            stroke-linecap: round;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+            transition: stroke-dashoffset 0.8s ease, stroke 0.8s ease;
+        }
+
+        .gauge-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .gauge-percent {
+            font-size: 32px;
+            font-weight: 800;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .gauge-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .result-label {
+            font-size: 22px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+            color: var(--success-color);
+        }
+
+        .result-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        /* --- STORYTELLING PAGE --- */
+        .story-section {
+            background: var(--card-color);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 36px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .story-title {
+            font-size: 22px;
+            margin-bottom: 16px;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 10px;
+        }
+
+        .story-text {
+            color: #d1d5db;
+            margin-bottom: 16px;
+        }
+
+        .story-callout {
+            background: rgba(244, 63, 94, 0.08);
+            border-left: 4px solid var(--danger-color);
+            padding: 16px;
+            border-radius: 0 12px 12px 0;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 1024px) {
+            .predictor-container {
+                grid-template-columns: 1fr;
+            }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="brand">
+            <span class="brand-icon">❤️</span>
+            <span class="brand-title">CardioAnalytics</span>
+        </div>
+        
+        <ul class="nav-list">
+            <li class="nav-item active" onclick="switchTab(this, 'overview')">
+                <span class="nav-icon">🏠</span>
+                <span>Executive Summary</span>
+            </li>
+            <li class="nav-item" onclick="switchTab(this, 'insights')">
+                <span class="nav-icon">📊</span>
+                <span>Dataset Insights</span>
+            </li>
+            <li class="nav-item" onclick="switchTab(this, 'arena')">
+                <span class="nav-icon">🤖</span>
+                <span>Model Arena</span>
+            </li>
+            <li class="nav-item" onclick="switchTab(this, 'predictor')">
+                <span class="nav-icon">🩺</span>
+                <span>Predictor Clinic</span>
+            </li>
+        </ul>
+
+        <div class="sidebar-footer">
+            <p>Heart Disease Predictor v1.0</p>
+            <p style="margin-top: 4px; font-size: 10px;">Designed by Shrimun</p>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        
+        <!-- Tab 1: Executive Summary -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="page-header">
+                <h1 class="page-title">Executive Summary & Storytelling</h1>
+                <p class="page-subtitle">Project overview, clinical context, and machine learning pipeline explanation.</p>
+            </div>
+
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <span class="kpi-label">Cleveland Dataset Size</span>
+                    <span class="kpi-value" id="kpi-size">303 Patients</span>
+                    <span class="kpi-sub">UCI Repository Source</span>
+                </div>
+                <div class="kpi-card healthy">
+                    <span class="kpi-label">Healthy Patients (Class 0)</span>
+                    <span class="kpi-value" id="kpi-healthy">164 Patients</span>
+                    <span class="kpi-sub">54.12% of total cohort</span>
+                </div>
+                <div class="kpi-card disease">
+                    <span class="kpi-label">Diseased Patients (Class 1)</span>
+                    <span class="kpi-value" id="kpi-disease">139 Patients</span>
+                    <span class="kpi-sub">45.88% of total cohort</span>
+                </div>
+                <div class="kpi-card metrics">
+                    <span class="kpi-label">Optimal Model Recall</span>
+                    <span class="kpi-value">100.00%</span>
+                    <span class="kpi-sub">0 False Negatives achieved</span>
+                </div>
+            </div>
+
+            <div class="story-section">
+                <h2 class="story-title">🩺 The Clinical Rationale: Minimizing Medical Risk</h2>
+                <p class="story-text">
+                    In diagnostics applications of artificial intelligence, model optimization metrics must represent clinical safety. 
+                    If a machine learning algorithm misclassifies a healthy patient as diseased (<strong>False Positive</strong>), 
+                    the doctor will run secondary checks. The patient faces slight anxiety, but they are medically safe.
+                </p>
+                <div class="story-callout">
+                    🚨 However, if the algorithm misclassifies a patient with severe blockages as healthy (<strong>False Negative</strong>), 
+                    the patient is sent home, potentially leading to fatal coronary outcomes.
+                </div>
+                <p class="story-text">
+                    Therefore, the primary optimization metric for this project is **Recall (Sensitivity)**. 
+                    Our goal was to train a classifier that achieves **zero False Negatives** while maintaining high overall precision.
+                </p>
+            </div>
+
+            <div class="story-section">
+                <h2 class="story-title">⚙️ Machine Learning Pipeline</h2>
+                <p class="story-text">
+                    The pipeline consists of clean, isolated phases starting from raw text ingestion:
+                </p>
+                <p class="story-text" style="padding-left: 16px;">
+                    <strong>1. Imputation:</strong> Missing clinical values in fluoroscopy major vessels (`ca`) and thalassemia types (`thal`) were imputed using robust median values.<br>
+                    <strong>2. Binarization:</strong> The multi-class target variable (scores 0 to 4) was mapped to binary labels: `0` (Healthy) vs `1` (Heart Disease Present).<br>
+                    <strong>3. Standard Scaling:</strong> Numerical variables such as age, blood pressure, and cholesterol were standard-scaled. This step is critical for distance-based algorithms like KNN to prevent scaling imbalances from skewing distances.<br>
+                    <strong>4. Hyperparameter Tuning:</strong> KNN was trained iteratively across $K=1$ to $K=31$, identifying **$K=9$** as the optimal neighbor count.
+                </p>
+            </div>
+        </div>
+
+        <!-- Tab 2: Dataset Insights -->
+        <div id="tab-insights" class="tab-content">
+            <div class="page-header">
+                <h1 class="page-title">Dataset Explorer</h1>
+                <p class="page-subtitle">Exploratory analysis and feature distributions inside the Cleveland cohort.</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Cohort Age Group Distribution</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-age"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Heart Disease breakdown by Gender</span>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="chart-gender"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-card" style="grid-column: span 2;">
+                    <div class="chart-header">
+                        <span class="chart-title">Chest Pain Type Distributions</span>
+                    </div>
+                    <div class="chart-container" style="height: 280px;">
+                        <canvas id="chart-chestpain"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Model Arena -->
+        <div id="tab-arena" class="tab-content">
+            <div class="page-header">
+                <h1 class="page-title">Model Comparison Arena</h1>
+                <p class="page-subtitle">Comparison of test set evaluation metrics across KNN, Logistic Regression, and Random Forest.</p>
+            </div>
+
+            <div class="dashboard-grid dashboard-grid-full">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <span class="chart-title">Evaluation Metrics Comparison (%)</span>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="chart-comparison"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="story-section">
+                <h2 class="story-title">🏆 Champion Model: Tuned KNN (K=9)</h2>
+                <p class="story-text">
+                    Through systematic comparison, the <strong>Tuned K-Nearest Neighbors ($K=9$)</strong> model was selected as our preferred model:
+                </p>
+                <p class="story-text" style="padding-left: 16px;">
+                    📈 **Accuracy (90.16%):** Outperforms the Logistic Regression baseline (86.89%) and Random Forest (88.52%).<br>
+                    🏥 **Recall (100.00%):** Outperforms Logistic Regression (92.86%) and Random Forest (96.43%), ensuring zero False Negatives.<br>
+                    💎 **F1-Score (90.32%):** Achieves the best overall balance between false positives and false negatives.
+                </p>
+            </div>
+        </div>
+
+        <!-- Tab 4: Predictor Clinic -->
+        <div id="tab-predictor" class="tab-content">
+            <div class="page-header">
+                <h1 class="page-title">Live Predictor Clinic</h1>
+                <p class="page-subtitle">Input patient clinical values to evaluate heart disease probability using the champion KNN ($K=9$) model.</p>
+            </div>
+
+            <div class="predictor-container">
+                <!-- Inputs -->
+                <div class="inputs-card">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Age (Years): <span class="val-display" id="val-age">50</span></label>
+                            <input type="range" id="inp-age" min="20" max="90" value="50" oninput="updateDisplay(this, 'val-age')">
+                        </div>
+                        <div class="form-group">
+                            <label>Biological Sex</label>
+                            <select id="inp-sex">
+                                <option value="0">Female</option>
+                                <option value="1" selected>Male</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Chest Pain Type (CP)</label>
+                            <select id="inp-cp">
+                                <option value="0">Typical Angina (0)</option>
+                                <option value="1">Atypical Angina (1)</option>
+                                <option value="2">Non-anginal Pain (2)</option>
+                                <option value="3" selected>Asymptomatic (3)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Resting Blood Pressure: <span class="val-display" id="val-trestbps">130</span></label>
+                            <input type="range" id="inp-trestbps" min="80" max="200" value="130" oninput="updateDisplay(this, 'val-trestbps')">
+                        </div>
+                        <div class="form-group">
+                            <label>Serum Cholesterol (mg/dl): <span class="val-display" id="val-chol">240</span></label>
+                            <input type="range" id="inp-chol" min="100" max="450" value="240" oninput="updateDisplay(this, 'val-chol')">
+                        </div>
+                        <div class="form-group">
+                            <label>Fasting Blood Sugar > 120 mg/dl</label>
+                            <select id="inp-fbs">
+                                <option value="0" selected>False (0)</option>
+                                <option value="1">True (1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Resting ECG</label>
+                            <select id="inp-restecg">
+                                <option value="0" selected>Normal (0)</option>
+                                <option value="1">ST-T Wave Abnormality (1)</option>
+                                <option value="2">Left Ventricular Hypertrophy (2)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Max Heart Rate Achieved: <span class="val-display" id="val-thalach">150</span></label>
+                            <input type="range" id="inp-thalach" min="70" max="220" value="150" oninput="updateDisplay(this, 'val-thalach')">
+                        </div>
+                        <div class="form-group">
+                            <label>Exercise Induced Angina</label>
+                            <select id="inp-exang">
+                                <option value="0" selected>No (0)</option>
+                                <option value="1">Yes (1)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>ST Depression (oldpeak): <span class="val-display" id="val-oldpeak">1.2</span></label>
+                            <input type="range" id="inp-oldpeak" min="0.0" max="6.0" step="0.1" value="1.2" oninput="updateDisplay(this, 'val-oldpeak')">
+                        </div>
+                        <div class="form-group">
+                            <label>ST Slope Segment</label>
+                            <select id="inp-slope">
+                                <option value="0">Upsloping (0)</option>
+                                <option value="1" selected>Flat (1)</option>
+                                <option value="2">Downsloping (2)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fluoroscopy Vessels (CA)</label>
+                            <select id="inp-ca">
+                                <option value="0" selected>0 Major Vessels</option>
+                                <option value="1">1 Major Vessel</option>
+                                <option value="2">2 Major Vessels</option>
+                                <option value="3">3 Major Vessels</option>
+                            </select>
+                        </div>
+                        <div class="form-group form-group-full">
+                            <label>Thalassemia Status</label>
+                            <select id="inp-thal">
+                                <option value="3">Normal (3.0)</option>
+                                <option value="6">Fixed Defect (6.0)</option>
+                                <option value="7" selected>Reversible Defect (7.0)</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn-predict" onclick="runInference()">Analyze Patient Risk</button>
+                    </div>
+                </div>
+
+                <!-- Results -->
+                <div class="results-sidebar">
+                    <div class="result-card">
+                        <h3>Diagnostic Report</h3>
+                        
+                        <div class="gauge-container">
+                            <svg width="160" height="160">
+                                <circle class="gauge-bg" cx="80" cy="80" r="70"></circle>
+                                <circle class="gauge-fill" id="risk-gauge" cx="80" cy="80" r="70"></circle>
+                            </svg>
+                            <div class="gauge-text">
+                                <span class="gauge-percent" id="risk-percent">0%</span>
+                                <span class="gauge-label">Risk Probability</span>
+                            </div>
+                        </div>
+
+                        <div class="result-label" id="result-text">Ready to Predict</div>
+                        <div class="result-description" id="result-desc">
+                            Select patient measurements on the left panel and click the diagnostic button to execute the machine learning prediction.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripting Dashboard Interactions -->
+    <script>
+        // Defensive Check: Verify if data file is loaded
+        if (!window.DASHBOARD_DATA) {
+            document.body.innerHTML = `
+                <div style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:100vh; width:100vw; background:#0b0f19; color:#f3f4f6; font-family:'Inter', sans-serif; text-align:center; padding:20px; box-sizing:border-box;">
+                    <h1 style="color:#f43f5e; margin-bottom:20px; font-size:28px; font-family:'Outfit', sans-serif;">⚠️ Missing Dashboard Data</h1>
+                    <p style="color:#9ca3af; margin-bottom:20px; font-size:16px; max-width:600px; line-height:1.6;">The dashboard is missing the serialized dataset statistics and model parameters. Please run the exporter script to compile the clinical parameters first:</p>
+                    <div style="background:rgba(255,255,255,0.05); padding:16px 28px; border-radius:12px; border:1px solid rgba(255,255,255,0.1); font-family:monospace; margin-bottom:24px; font-size:15px; color:#38bdf8; font-weight:bold;">
+                        python src/export_dashboard_data.py
+                    </div>
+                    <p style="color:#9ca3af; font-size:14px;">Once executed, refresh this browser tab to load the full visual analysis and Live Predictor.</p>
+                </div>
+            `;
+            throw new Error("Missing window.DASHBOARD_DATA - Please run src/export_dashboard_data.py first");
+        }
+
+        // Load data from dashboard_data.js
+        const stats = window.DASHBOARD_DATA.raw_stats;
+        const scalerMean = window.DASHBOARD_DATA.scaler_mean;
+        const scalerScale = window.DASHBOARD_DATA.scaler_scale;
+        const X_train = window.DASHBOARD_DATA.X_train;
+        const y_train = window.DASHBOARD_DATA.y_train;
+
+        // Populate KPIs
+        document.getElementById('kpi-size').textContent = `${stats.total_patients} Patients`;
+        document.getElementById('kpi-healthy').textContent = `${stats.healthy_count} Patients`;
+        document.getElementById('kpi-disease').textContent = `${stats.disease_count} Patients`;
+
+        // Switch Tabs
+        function switchTab(element, tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            element.classList.add('active');
+        }
+
+        // Slider Display updates
+        function updateDisplay(slider, targetId) {
+            document.getElementById(targetId).textContent = slider.value;
+        }
+
+        // --- CHART JS CONFIG ---
+        if (typeof Chart !== 'undefined') {
+            // Charts defaults
+            Chart.defaults.color = '#9ca3af';
+            Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.05)';
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            // Age Chart
+            const ageCtx = document.getElementById('chart-age').getContext('2d');
+            new Chart(ageCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Under 45', '45 - 54', '55 - 64', '65+'],
+                    datasets: [{
+                        label: 'Patient Count',
+                        data: [
+                            stats.age_groups.under_45,
+                            stats.age_groups["45_54"],
+                            stats.age_groups["55_64"],
+                            stats.age_groups["65_plus"]
+                        ],
+                        backgroundColor: 'rgba(56, 189, 248, 0.6)',
+                        borderColor: '#38bdf8',
+                        borderWidth: 1.5,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Gender Chart
+            const genderCtx = document.getElementById('chart-gender').getContext('2d');
+            new Chart(genderCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Female', 'Male'],
+                    datasets: [
+                        {
+                            label: 'Healthy (Class 0)',
+                            data: [stats.gender_stats.female_healthy, stats.gender_stats.male_healthy],
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: '#10b981',
+                            borderWidth: 1.5,
+                            borderRadius: 8
+                        },
+                        {
+                            label: 'Disease Present (Class 1)',
+                            data: [stats.gender_stats.female_disease, stats.gender_stats.male_disease],
+                            backgroundColor: 'rgba(244, 63, 94, 0.6)',
+                            borderColor: '#f43f5e',
+                            borderWidth: 1.5,
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+
+            // Chest pain type distribution
+            const cpCtx = document.getElementById('chart-chestpain').getContext('2d');
+            new Chart(cpCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Typical Angina (0)', 'Atypical Angina (1)', 'Non-Anginal (2)', 'Asymptomatic (3)'],
+                    datasets: [{
+                        data: [
+                            stats.chest_pain_stats.typical_angina,
+                            stats.chest_pain_stats.atypical_angina,
+                            stats.chest_pain_stats.non_anginal,
+                            stats.chest_pain_stats.asymptomatic
+                        ],
+                        backgroundColor: [
+                            'rgba(56, 189, 248, 0.6)',
+                            'rgba(251, 191, 36, 0.6)',
+                            'rgba(16, 185, 129, 0.6)',
+                            'rgba(244, 63, 94, 0.6)'
+                        ],
+                        borderColor: '#111827',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right'
+                        }
+                    }
+                }
+            });
+
+            // Model comparison chart
+            const compCtx = document.getElementById('chart-comparison').getContext('2d');
+            new Chart(compCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Accuracy', 'Precision', 'Recall', 'Specificity', 'F1 Score'],
+                    datasets: [
+                        {
+                            label: 'Tuned KNN (K=9)',
+                            data: [90.16, 82.35, 100.00, 81.82, 90.32],
+                            backgroundColor: 'rgba(56, 189, 248, 0.7)',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Logistic Regression',
+                            data: [86.89, 81.25, 92.86, 81.82, 86.67],
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: '#10b981',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            label: 'Random Forest',
+                            data: [88.52, 81.82, 96.43, 81.82, 88.52],
+                            backgroundColor: 'rgba(251, 191, 36, 0.7)',
+                            borderColor: '#fbbf24',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 70,
+                            max: 105,
+                            ticks: {
+                                callback: function(value) { return value + "%"; }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            console.warn("Chart.js CDN is offline. Charts will not render, but predictor functions remain active.");
+            document.querySelectorAll('.chart-container').forEach(container => {
+                container.innerHTML = `
+                    <div style="display:flex; justify-content:center; align-items:center; height:100%; color:var(--text-muted); font-size:14px; text-align:center; border:1px dashed rgba(255,255,255,0.1); border-radius:12px; padding:20px; box-sizing:border-box;">
+                        ⚠️ Chart rendering disabled (requires active internet connection to load Chart.js CDN).
+                    </div>
+                `;
+            });
+        }
+
+
+        // --- LIVE INFERENCE LOGIC (KNN client-side) ---
+        function runInference() {
+            // 1. Collect raw features from values
+            const age = parseFloat(document.getElementById('inp-age').value);
+            const sex = parseFloat(document.getElementById('inp-sex').value);
+            const cp = parseFloat(document.getElementById('inp-cp').value);
+            const trestbps = parseFloat(document.getElementById('inp-trestbps').value);
+            const chol = parseFloat(document.getElementById('inp-chol').value);
+            const fbs = parseFloat(document.getElementById('inp-fbs').value);
+            const restecg = parseFloat(document.getElementById('inp-restecg').value);
+            const thalach = parseFloat(document.getElementById('inp-thalach').value);
+            const exang = parseFloat(document.getElementById('inp-exang').value);
+            const oldpeak = parseFloat(document.getElementById('inp-oldpeak').value);
+            const slope = parseFloat(document.getElementById('inp-slope').value);
+            const ca = parseFloat(document.getElementById('inp-ca').value);
+            const thal = parseFloat(document.getElementById('inp-thal').value);
+
+            const raw = [age, sex, cp, trestbps, chol, fbs, restecg, thalach, exang, oldpeak, slope, ca, thal];
+
+            // 2. Scale features using scaler mean and scale parameter values
+            const scaled = [];
+            for (let i = 0; i < raw.length; i++) {
+                scaled.push((raw[i] - scalerMean[i]) / scalerScale[i]);
+            }
+
+            // 3. Compute Euclidean distances to all 242 training points
+            const distances = [];
+            for (let i = 0; i < X_train.length; i++) {
+                let sumSq = 0;
+                for (let j = 0; j < X_train[i].length; j++) {
+                    sumSq += Math.pow(scaled[j] - X_train[i][j], 2);
+                }
+                distances.push({
+                    distance: Math.sqrt(sumSq),
+                    label: y_train[i]
+                });
+            }
+
+            // 4. Sort distances ascending to find closest matches
+            distances.sort((a, b) => a.distance - b.distance);
+
+            // 5. Select closest K=9 neighbors and count disease class counts
+            const K = 9;
+            let diseaseVotes = 0;
+            for (let i = 0; i < K; i++) {
+                if (distances[i].label === 1) {
+                    diseaseVotes++;
+                }
+            }
+
+            // 6. Calculate risk score percentage
+            const probability = diseaseVotes / K;
+            const percentage = Math.round(probability * 100);
+
+            // 7. Update UI elements
+            updateGauge(percentage);
+
+            const resultText = document.getElementById('result-text');
+            const resultDesc = document.getElementById('result-desc');
+
+            if (percentage >= 50) {
+                resultText.textContent = "High Risk of Heart Disease";
+                resultText.style.color = "var(--danger-color)";
+                resultDesc.innerHTML = `Our <strong>Tuned KNN ($K=9$)</strong> model predicts that heart disease is present with <strong>${percentage}%</strong> confidence.<br><br>The combination of clinical markers (e.g. asymptomatic chest pain, ST-segment depression, or major fluoroscopy vessels) indicators point toward significant coronary risk. Diagnostic checkups are strongly recommended.`;
+            } else {
+                resultText.textContent = "Low Risk / No Heart Disease";
+                resultText.style.color = "var(--success-color)";
+                resultDesc.innerHTML = `Our model predicts that the patient is healthy (No Heart Disease) with <strong>${100 - percentage}%</strong> confidence.<br><br>The clinical values inputted align with lower risks of blockages. Normal cardiovascular health is predicted.`;
+            }
+        }
+
+        // SVG Gauge animation logic
+        function updateGauge(percent) {
+            const gaugeFill = document.getElementById('risk-gauge');
+            const riskPercentText = document.getElementById('risk-percent');
+            
+            // stroke-dasharray is 440 (length of circle outline). We deduct offset to fill it.
+            const strokeOffset = 440 - (440 * percent) / 100;
+            gaugeFill.style.strokeDashoffset = strokeOffset;
+            
+            // Transition color from Green (success) to Orange (warning) to Red (danger)
+            if (percent < 30) {
+                gaugeFill.style.stroke = "var(--success-color)";
+            } else if (percent < 60) {
+                gaugeFill.style.stroke = "var(--warning-color)";
+            } else {
+                gaugeFill.style.stroke = "var(--danger-color)";
+            }
+
+            riskPercentText.textContent = `${percent}%`;
+        }
+
+        // Initialize empty state indicator
+        updateGauge(0);
+    </script>
+</body>
+</html>
