@@ -1,11 +1,11 @@
-# ❤️ Predicting Heart Disease with K-Nearest Neighbors
+# Predicting Heart Disease with K-Nearest Neighbors
 
-This repository contains a professional, production-grade machine learning pipeline to predict the presence of heart disease using patient clinical measurements from the famous **Cleveland Heart Disease Dataset** (obtained from the UCI Machine Learning Repository).
+This repository contains a professional, production-grade machine learning pipeline to predict the presence of heart disease using patient clinical measurements from the famous **Heart Disease Dataset** (obtained from the UCI Machine Learning Repository).
 
 We build, optimize, and compare multiple supervised classifiers, culminating in a champion model that is serialized and ready for deployment. This guide is structured to be immediately understandable for **beginners** looking to learn machine learning workflows, and **professionals** evaluating model metrics and architecture.
 
 > [!TIP]
-> **🚀 Live Interactive Dashboard:** We developed a fully interactive, Power BI-styled storytelling dashboard in this repository! Simply open **[dashboard.html](file:///d:/Predicting-Heart-Disease-with-K-Nearest-Neighbour/Predicting-Heart-Disease-with-K-Nearest-Neighbors/dashboard.html)** in any web browser to explore dataset distributions, interact with model comparison graphs, and run patient diagnostic predictions using a **real-time client-side KNN machine learning engine**.
+> **🚀 Live Interactive Dashboard:** I developed a fully interactive, Power BI-styled storytelling dashboard in this repository! Simply open **[dashboard.html](file:///d:/Predicting-Heart-Disease-with-K-Nearest-Neighbour/Predicting-Heart-Disease-with-K-Nearest-Neighbors/dashboard.html)** in any web browser to explore dataset distributions, interact with model comparison graphs, and run patient diagnostic predictions using a **real-time client-side KNN machine learning engine**.
 
 ---
 
